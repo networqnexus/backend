@@ -17,6 +17,8 @@ const hrmsRoutes         = require("./routes/hrmsRoutes");
 const analyticsRoutes    = require("./routes/analyticsRoutes");
 const streamRoutes       = require("./routes/streamRoutes");
 
+
+
 const app = express(), server = http.createServer(app);
 const io = new Server(server, { cors: { origin: process.env.CLIENT_URL || "http://localhost:5173", methods: ["GET","POST"] } });
 const onlineUsers = new Map();
