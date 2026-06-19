@@ -1,0 +1,10 @@
+const express=require("express"),router=express.Router();
+const auth=require("../middleware/authMiddleware");
+const c=require("../controllers/profileController");
+const upload=require("../config/upload");
+router.get("/me",auth,c.getMe);
+router.get("/stats",auth,c.getStats);
+router.put("/update",auth,upload.fields([{name:"avatar",maxCount:1},{name:"cover",maxCount:1}]),c.updateProfile);
+router.put("/change-password",auth,c.changePassword);
+router.get("/:username",auth,c.getProfile);
+module.exports=router;

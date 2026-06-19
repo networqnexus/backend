@@ -1,0 +1,3 @@
+const Notification=require("../models/Notification");
+exports.getNotifications=async(req,res)=>{try{const notifications=await Notification.find({recipient:req.user.id}).populate("sender","name username avatarUrl").sort({createdAt:-1}).limit(20);const unreadCount=await Notification.countDocuments({recipient:req.user.id,read:false});res.json({success:true,notifications,unreadCount});}catch(e){res.status(500).json({success:false,message:"Server Error"});}};
+exports.markAllRead=async(req,res)=>{try{await Notification.updateMany({recipient:req.user.id,read:false},{read:true});res.json({success:true,message:"All read"});}catch(e){res.status(500).json({success:false,message:"Server Error"});}};

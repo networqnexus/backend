@@ -1,0 +1,10 @@
+const express = require("express"), router = express.Router();
+const auth = require("../middleware/authMiddleware");
+const c = require("../controllers/atsController");
+router.get("/", auth, c.getCandidates);
+router.get("/stats", auth, c.getStats);
+router.post("/", auth, c.addCandidate);
+router.put("/:id/stage", auth, c.updateStage);
+router.put("/:id/rating", auth, c.updateRating);
+router.delete("/:id", auth, c.deleteCandidate);
+module.exports = router;

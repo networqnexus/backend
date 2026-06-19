@@ -1,0 +1,11 @@
+const express=require("express"),router=express.Router();
+const auth=require("../middleware/authMiddleware");
+const c=require("../controllers/networkController");
+router.get("/suggestions",auth,c.getSuggestions);
+router.get("/connections",auth,c.getConnections);
+router.get("/requests",auth,c.getRequests);
+router.post("/connect/:userId",auth,c.sendRequest);
+router.put("/request/:id/accept",auth,c.acceptRequest);
+router.put("/request/:id/reject",auth,c.rejectRequest);
+router.delete("/remove/:userId",auth,c.removeConnection);
+module.exports=router;

@@ -1,0 +1,32 @@
+const mongoose = require("mongoose");
+const userSchema = new mongoose.Schema({
+  name: { type: String, required: true, trim: true },
+  email: { type: String, required: true, unique: true, lowercase: true },
+  contactNumber: { type: String, required: true },
+  location: { type: String, required: true },
+  username: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  onboardingCompleted: { type: Boolean, default: false },
+  role: { type: String, enum: ["candidate", "recruiter"], default: "candidate" },
+  headline: { type: String, default: "" },
+  bio: { type: String, default: "" },
+  website: { type: String, default: "" },
+  avatarUrl: { type: String, default: "" },
+  coverUrl: { type: String, default: "" },
+  openToWork: { type: Boolean, default: false },
+  skills: [String],
+  goals: [String],
+  experience: [{ role: String, company: String, type: String, startDate: String, endDate: String, current: Boolean, location: String, desc: String, skills: [String] }],
+  education: [{ degree: String, school: String, startYear: String, endYear: String, grade: String }],
+  certifications: [{ name: String, issuer: String, year: String }],
+  connections: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+  profileViews: { type: Number, default: 0 },
+  searchAppearances: { type: Number, default: 0 },
+  emailVerified:           { type: Boolean, default: false },
+  emailVerificationToken:  { type: String },
+  emailVerificationExpiry: { type: Date },
+  passwordResetToken:      { type: String },
+  passwordResetExpiry:     { type: Date },
+}, { timestamps: true });
+userSchema.index({ name: "text", username: "text", headline: "text" });
+module.exports = mongoose.model("User", userSchema);
