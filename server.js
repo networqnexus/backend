@@ -16,6 +16,7 @@ const crmRoutes          = require("./routes/crmRoutes");
 const hrmsRoutes         = require("./routes/hrmsRoutes");
 const analyticsRoutes    = require("./routes/analyticsRoutes");
 const streamRoutes       = require("./routes/streamRoutes");
+const contactRoutes      = require("./routes/contactRoutes");
 
 
 
@@ -64,7 +65,8 @@ app.use("/api/ats",           atsRoutes);
 app.use("/api/crm",           crmRoutes);
 app.use("/api/hrms",          hrmsRoutes);
 app.use("/api/analytics",     analyticsRoutes);
-app.use("/api/streams", streamRoutes);
+app.use("/api/streams",  streamRoutes);
+app.use("/api/contact", contactRoutes);
 
 app.get("/", (req, res) => res.json({ success: true, message: "Networq Nexus API 🚀" }));
 app.use((req, res) => res.status(404).json({ success: false, message: `Route ${req.originalUrl} not found` }));

@@ -1,13 +1,31 @@
-const { Resend } = require("resend");
+const nodemailer = require("nodemailer");
+const { Resend }  = require("resend");
+
+// ── helpers ──────────────────────────────────────────────
+const isGmailConfigured = () =>
+  process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD;
 
 const isResendConfigured = () =>
   process.env.RESEND_API_KEY &&
   !process.env.RESEND_API_KEY.includes("re_your");
 
+const getGmailTransporter = () =>
+  nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false,
+    auth: {
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_APP_PASSWORD,
+    },
+  });
+
 const getResend = () => new Resend(process.env.RESEND_API_KEY);
 
-const FROM = process.env.FROM_EMAIL || "Networq Nexus <onboarding@resend.dev>";
+const GMAIL_FROM   = `Networq Nexus <${process.env.GMAIL_USER}>`;
+const RESEND_FROM  = process.env.FROM_EMAIL || "Networq Nexus <onboarding@resend.dev>";
 
+// ── HTML template ─────────────────────────────────────────
 const baseTemplate = (content) => `
   <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;background:#0f172a;border-radius:12px;overflow:hidden;">
     <div style="background:#6366f1;padding:20px 24px;text-align:center;">
@@ -22,16 +40,30 @@ const baseTemplate = (content) => `
   </div>
 `;
 
+// ── core send function (Gmail first, Resend fallback) ──────
+const sendEmail = async ({ to, subject, html }) => {
+  if (isGmailConfigured()) {
+    await getGmailTransporter().sendMail({ from: GMAIL_FROM, to, subject, html });
+    return;
+  }
+  if (isResendConfigured()) {
+    await getResend().emails.send({ from: RESEND_FROM, to, subject, html });
+    return;
+  }
+  // dev mode — just log
+  console.log(`\n[DEV EMAIL] To: ${to} | Subject: ${subject}\n`);
+};
+
+// ── public functions ───────────────────────────────────────
 const sendVerificationEmail = async (to, name, token) => {
   const url = `${process.env.FRONTEND_URL || "http://localhost:5173"}/verify-email?token=${token}`;
 
-  if (!isResendConfigured()) {
+  if (!isGmailConfigured() && !isResendConfigured()) {
     console.log(`\n[DEV EMAIL] Verification link for ${to}:\n${url}\n`);
     return;
   }
 
-  await getResend().emails.send({
-    from: FROM,
+  await sendEmail({
     to,
     subject: "Verify your Networq Nexus email",
     html: baseTemplate(`
@@ -48,13 +80,12 @@ const sendVerificationEmail = async (to, name, token) => {
 const sendPasswordResetEmail = async (to, name, token) => {
   const url = `${process.env.FRONTEND_URL || "http://localhost:5173"}/reset-password?token=${token}`;
 
-  if (!isResendConfigured()) {
+  if (!isGmailConfigured() && !isResendConfigured()) {
     console.log(`\n[DEV EMAIL] Password reset link for ${to}:\n${url}\n`);
     return;
   }
 
-  await getResend().emails.send({
-    from: FROM,
+  await sendEmail({
     to,
     subject: "Reset your Networq Nexus password",
     html: baseTemplate(`
@@ -68,4 +99,30 @@ const sendPasswordResetEmail = async (to, name, token) => {
   });
 };
 
-module.exports = { sendVerificationEmail, sendPasswordResetEmail };
+const sendContactEmail = async ({ name, email, message }) => {
+  const adminEmail = process.env.ADMIN_EMAIL || process.env.GMAIL_USER || "admin@networqnexus.com";
+
+  if (!isGmailConfigured() && !isResendConfigured()) {
+    console.log(`\n[DEV CONTACT] From: ${name} <${email}>\nMessage: ${message}\n`);
+    return;
+  }
+
+  await sendEmail({
+    to: adminEmail,
+    subject: `Help Center Message from ${name}`,
+    html: baseTemplate(`
+      <h2 style="color:#f8fafc;margin:0 0 8px;">New Support Message</h2>
+      <p style="color:#94a3b8;margin:0 0 20px;">Someone submitted a message via the Help Center.</p>
+      <table style="width:100%;border-collapse:collapse;">
+        <tr><td style="color:#64748b;padding:6px 0;font-size:13px;width:80px;">Name</td><td style="color:#f8fafc;font-size:13px;">${name}</td></tr>
+        <tr><td style="color:#64748b;padding:6px 0;font-size:13px;">Email</td><td style="color:#6366f1;font-size:13px;">${email}</td></tr>
+      </table>
+      <div style="margin-top:20px;padding:16px;background:#1e293b;border-radius:8px;border-left:3px solid #6366f1;">
+        <p style="color:#94a3b8;font-size:13px;margin:0;white-space:pre-wrap;">${message}</p>
+      </div>
+      <a href="mailto:${email}" style="display:inline-block;margin-top:20px;background:#6366f1;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:13px;font-weight:bold;">Reply to ${name}</a>
+    `),
+  });
+};
+
+module.exports = { sendVerificationEmail, sendPasswordResetEmail, sendContactEmail };
