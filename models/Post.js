@@ -6,7 +6,7 @@ const postSchema = new mongoose.Schema({
   media: { data: String, mimeType: String, type: { type: String, enum: ["image", "video"] } },
   tags: [String],
   visibility: { type: String, enum: ["public", "connections", "private"], default: "public" },
-  likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+  reactions: [{ user: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, type: { type: String, default: "like" } }],
   comments: [commentSchema],
   shares: { type: Number, default: 0 },
 }, { timestamps: true });

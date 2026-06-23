@@ -21,7 +21,7 @@ exports.getProfile = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
   try {
-    const allowed=["headline","bio","website","skills","goals","openToWork","location","experience","education","certifications","name","contactNumber"];
+    const allowed=["headline","bio","website","skills","goals","openToWork","location","experience","education","certifications","name","contactNumber","hideOnlineStatus"];
     const updates={};
     allowed.forEach(k=>{if(req.body[k]!==undefined)updates[k]=req.body[k];});
     if(req.files?.avatar?.[0]){const f=req.files.avatar[0];updates.avatarUrl=`data:${f.mimetype};base64,${f.buffer.toString("base64")}`;}
@@ -51,4 +51,32 @@ exports.changePassword = async (req, res) => {
     await user.save();
     res.json({success:true,message:"Password updated successfully"});
   } catch(e){res.status(500).json({success:false,message:"Server Error"});}
+};
+
+exports.endorseSkill = async (req, res) => {
+  try {
+    const { skill } = req.body;
+    if (!skill) return res.status(400).json({ success:false, message:"Skill required" });
+    const target = await User.findOne({ username: req.params.username });
+    if (!target) return res.status(404).json({ success:false, message:"User not found" });
+    if (target._id.toString() === req.user.id) return res.status(400).json({ success:false, message:"Cannot endorse your own skill" });
+    if (!target.skills.includes(skill)) return res.status(400).json({ success:false, message:"User doesn't have this skill" });
+
+    const idx = target.endorsements.findIndex(e => e.skill === skill);
+    let endorsed = true;
+    if (idx === -1) {
+      target.endorsements.push({ skill, endorsedBy: [req.user.id] });
+    } else {
+      const alreadyIdx = target.endorsements[idx].endorsedBy.findIndex(id => id.toString() === req.user.id);
+      if (alreadyIdx !== -1) {
+        target.endorsements[idx].endorsedBy.splice(alreadyIdx, 1);
+        endorsed = false;
+        if (target.endorsements[idx].endorsedBy.length === 0) target.endorsements.splice(idx, 1);
+      } else {
+        target.endorsements[idx].endorsedBy.push(req.user.id);
+      }
+    }
+    await target.save();
+    res.json({ success:true, endorsed, endorsements: target.endorsements });
+  } catch(e) { res.status(500).json({ success:false, message:"Server Error" }); }
 };

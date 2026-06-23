@@ -1,12 +1,15 @@
 const express = require("express"), router = express.Router();
-const auth = require("../middleware/authMiddleware");
-const c = require("../controllers/hrmsController");
-router.get("/employees", auth, c.getEmployees);
-router.get("/stats", auth, c.getStats);
-router.post("/employees", auth, c.addEmployee);
-router.put("/employees/:id", auth, c.updateEmployee);
-router.delete("/employees/:id", auth, c.deleteEmployee);
-router.get("/leave", auth, c.getLeaveRequests);
-router.post("/leave", auth, c.addLeaveRequest);
-router.put("/leave/:id/status", auth, c.updateLeaveStatus);
+const auth    = require("../middleware/authMiddleware");
+const premium = require("../middleware/premiumMiddleware");
+const c       = require("../controllers/hrmsController");
+
+router.use(auth, premium);
+router.get("/employees", c.getEmployees);
+router.get("/stats", c.getStats);
+router.post("/employees", c.addEmployee);
+router.put("/employees/:id", c.updateEmployee);
+router.delete("/employees/:id", c.deleteEmployee);
+router.get("/leave", c.getLeaveRequests);
+router.post("/leave", c.addLeaveRequest);
+router.put("/leave/:id/status", c.updateLeaveStatus);
 module.exports = router;
