@@ -6,5 +6,6 @@ router.get("/me",auth,c.getMe);
 router.get("/stats",auth,c.getStats);
 router.put("/update",auth,upload.fields([{name:"avatar",maxCount:1},{name:"cover",maxCount:1}]),c.updateProfile);
 router.put("/change-password",auth,c.changePassword);
+router.post("/:username/endorse", auth, c.endorseSkill);
 router.get("/:username",auth,c.getProfile);
 module.exports=router;

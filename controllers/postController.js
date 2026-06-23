@@ -1,4 +1,5 @@
 const Post = require("../models/Post");
+const User = require("../models/User");
 const Notification = require("../models/Notification");
 const populate = (q) => q.populate("author","name username headline avatarUrl").populate("comments.user","name username avatarUrl");
 
@@ -25,15 +26,55 @@ exports.createPost = async (req, res) => {
 
 exports.likePost = async (req, res) => {
   try {
-    const post=await Post.findById(req.params.id).populate("author","name username");
-    if(!post) return res.status(404).json({success:false,message:"Post not found"});
-    const idx=post.likes.findIndex(id=>id.toString()===req.user.id);
-    const liked=idx===-1;
-    if(liked){post.likes.push(req.user.id);if(post.author._id.toString()!==req.user.id){await Notification.create({recipient:post.author._id,sender:req.user.id,type:"like",message:"liked your post",link:"/feed"});}}
-    else post.likes.splice(idx,1);
+    const post = await Post.findById(req.params.id).populate("author","name username");
+    if (!post) return res.status(404).json({ success:false, message:"Post not found" });
+    const type = req.body?.type || "like";
+    const existingIdx = post.reactions.findIndex(r => r.user.toString() === req.user.id);
+    let reacted = true;
+    if (existingIdx !== -1) {
+      if (post.reactions[existingIdx].type === type) {
+        post.reactions.splice(existingIdx, 1);
+        reacted = false;
+      } else {
+        post.reactions[existingIdx].type = type;
+      }
+    } else {
+      post.reactions.push({ user: req.user.id, type });
+      if (post.author._id.toString() !== req.user.id) {
+        const notif = await Notification.create({ recipient:post.author._id, sender:req.user.id, type:"like", message:"reacted to your post", link:"/feed" });
+        await notif.populate("sender","name username avatarUrl");
+        const sid = req.onlineUsers?.get(post.author._id.toString());
+        if (sid) req.io?.to(sid).emit("new_notification", { notification: notif });
+      }
+    }
     await post.save();
-    res.json({success:true,likes:post.likes.length,liked});
-  } catch(e){res.status(500).json({success:false,message:"Server Error"});}
+    res.json({ success:true, reactions:post.reactions, reacted, type });
+  } catch(e) { res.status(500).json({ success:false, message:"Server Error" }); }
+};
+
+exports.toggleSave = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    const postId = req.params.id;
+    const idx = user.savedPosts.findIndex(id => id.toString() === postId);
+    if (idx === -1) user.savedPosts.push(postId);
+    else user.savedPosts.splice(idx, 1);
+    await user.save();
+    res.json({ success:true, saved: idx === -1 });
+  } catch(e) { res.status(500).json({ success:false, message:"Server Error" }); }
+};
+
+exports.getSavedPosts = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).populate({
+      path: "savedPosts",
+      populate: [
+        { path: "author", select: "name username headline avatarUrl" },
+        { path: "comments.user", select: "name username avatarUrl" },
+      ],
+    });
+    res.json({ success:true, posts: (user.savedPosts || []).slice().reverse() });
+  } catch(e) { res.status(500).json({ success:false, message:"Server Error" }); }
 };
 
 exports.commentPost = async (req, res) => {
@@ -45,7 +86,12 @@ exports.commentPost = async (req, res) => {
     post.comments.push({user:req.user.id,text});
     await post.save();
     await post.populate("comments.user","name username avatarUrl");
-    if(post.author._id.toString()!==req.user.id){await Notification.create({recipient:post.author._id,sender:req.user.id,type:"comment",message:"commented on your post",link:"/feed"});}
+    if(post.author._id.toString()!==req.user.id){
+      const notif = await Notification.create({recipient:post.author._id,sender:req.user.id,type:"comment",message:"commented on your post",link:"/feed"});
+      await notif.populate("sender","name username avatarUrl");
+      const sid = req.onlineUsers?.get(post.author._id.toString());
+      if (sid) req.io?.to(sid).emit("new_notification", { notification: notif });
+    }
     res.status(201).json({success:true,comment:post.comments[post.comments.length-1]});
   } catch(e){res.status(500).json({success:false,message:"Server Error"});}
 };

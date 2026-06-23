@@ -10,7 +10,7 @@ const connectDB = async () => {
     const uri = process.env.MONGO_URI;
 
     if (!uri) {
-      throw new Error(".env file nahi mila ya MONGO_URI set nahi hai — path check karo: backend/.env");
+      throw new Error("MONGO_URI is not set. Please check your backend/.env file.");
     }
 
     await mongoose.connect(uri, { family: 4 });

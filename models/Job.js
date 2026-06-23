@@ -7,7 +7,13 @@ const jobSchema = new mongoose.Schema({
   level: { type: String, enum: ["Junior", "Mid", "Senior", "Lead"], required: true },
   salary: String, skills: [String], description: String, requirements: [String], perks: [String],
   postedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-  applicants: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+  applicants: [{
+    user:      { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    resumeUrl: { type: String },
+    coverNote: { type: String },
+    status:    { type: String, enum: ["pending","reviewed","shortlisted","rejected"], default: "pending" },
+    appliedAt: { type: Date, default: Date.now },
+  }],
   saved: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   active: { type: Boolean, default: true },
 }, { timestamps: true });

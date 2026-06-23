@@ -27,6 +27,17 @@ const userSchema = new mongoose.Schema({
   emailVerificationExpiry: { type: Date },
   passwordResetToken:      { type: String },
   passwordResetExpiry:     { type: Date },
+  savedPosts:        [{ type: mongoose.Schema.Types.ObjectId, ref: "Post" }],
+  isPremium:         { type: Boolean, default: false },
+  premiumExpiresAt:  { type: Date },
+  stripeCustomerId:  { type: String },
+  stripeSubId:       { type: String },
+  endorsements: [{
+    skill:      { type: String, required: true },
+    endorsedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+  }],
+  lastSeen:          { type: Date },
+  hideOnlineStatus:  { type: Boolean, default: false },
 }, { timestamps: true });
 userSchema.index({ name: "text", username: "text", headline: "text" });
 module.exports = mongoose.model("User", userSchema);
