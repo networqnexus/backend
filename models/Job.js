@@ -11,8 +11,16 @@ const jobSchema = new mongoose.Schema({
     user:      { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     resumeUrl: { type: String },
     coverNote: { type: String },
-    status:    { type: String, enum: ["pending","reviewed","shortlisted","rejected"], default: "pending" },
+       status:    { type: String, enum: ["pending","reviewed","shortlisted","rejected"], default: "pending" },
     appliedAt: { type: Date, default: Date.now },
+    interview: {
+      date:        { type: String },
+      time:        { type: String },
+      meetLink:    { type: String },
+      scheduledAt: { type: Date },
+    },
+
+
   }],
   saved: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   active: { type: Boolean, default: true },

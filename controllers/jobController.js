@@ -1,4 +1,5 @@
 const Job=require("../models/Job"),Notification=require("../models/Notification"),User=require("../models/User");
+const { sendInterviewScheduledEmail } = require("../config/emailService");
 
 exports.getJobs=async(req,res)=>{
   try{
@@ -106,6 +107,33 @@ exports.updateApplicationStatus=async(req,res)=>{
     if(!app)return res.status(404).json({success:false,message:"Applicant not found"});
     app.status=status;
     await job.save();
+    const notifMessages={
+      reviewed:`Your application for "${job.title}" at ${job.company} has been reviewed.`,
+      rejected:`Your application for "${job.title}" at ${job.company} was not selected at this time. Thank you for applying.`,
+    };
+    if(notifMessages[status])
+      await Notification.create({recipient:app.user,sender:req.user.id,type:"job",message:notifMessages[status],link:"/jobs"});
     res.json({success:true,status});
+  }catch(e){res.status(500).json({success:false,message:"Server Error"});}
+};
+exports.scheduleInterview=async(req,res)=>{
+  try{
+    const{date,time,meetLink}=req.body;
+    if(!date||!time||!meetLink)
+      return res.status(400).json({success:false,message:"Date, time and meet link are required"});
+    const job=await Job.findOne({_id:req.params.id,postedBy:req.user.id})
+      .populate("applicants.user","name email");
+    if(!job)return res.status(404).json({success:false,message:"Job not found"});
+    const app=job.applicants.find(a=>a.user?._id?.toString()===req.params.userId||a.user?.toString()===req.params.userId);
+    if(!app)return res.status(404).json({success:false,message:"Applicant not found"});
+    app.status="shortlisted";
+    app.interview={date,time,meetLink,scheduledAt:new Date()};
+    await job.save();
+    if(app.user?.email){
+      sendInterviewScheduledEmail(app.user.email,app.user.name,{
+        jobTitle:job.title,company:job.company,date,time,meetLink
+      }).catch(()=>{});
+    }
+    res.json({success:true,message:"Interview scheduled"});
   }catch(e){res.status(500).json({success:false,message:"Server Error"});}
 };

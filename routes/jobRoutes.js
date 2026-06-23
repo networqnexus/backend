@@ -12,6 +12,8 @@ router.put("/:id/apply",      auth, resumeUpload.single("resume"), c.applyJob);
 router.put("/:id/save",       auth, c.saveJob);
 router.put("/:id/toggle",     auth, c.closeJob);
 router.put("/:id/applicant/:userId/status", auth, c.updateApplicationStatus);
+router.post("/:id/applicant/:userId/schedule-interview", auth, c.scheduleInterview);
 router.delete("/:id",         auth, c.deleteJob);
+
 
 module.exports = router;
