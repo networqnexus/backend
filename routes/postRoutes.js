@@ -3,6 +3,7 @@ const auth = require("../middleware/authMiddleware");
 const c = require("../controllers/postController");
 const upload = require("../config/upload");
 
+router.get("/trending",       auth, c.getTrendingHashtags);
 router.get("/",               auth, c.getPosts);
 router.get("/my",             auth, c.getMyPosts);
 router.get("/saved",          auth, c.getSavedPosts);

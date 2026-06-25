@@ -113,6 +113,49 @@ exports.getMyPosts = async (req, res) => {
   } catch(e){res.status(500).json({success:false,message:"Server Error"});}
 };
 
+exports.getTrendingHashtags = async (req, res) => {
+  try {
+    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const results = await Post.aggregate([
+      { $match: { createdAt: { $gte: since }, visibility: "public" } },
+      {
+        $project: {
+          tagsList: {
+            $concatArrays: [
+              {
+                $map: {
+                  input: "$tags",
+                  as: "t",
+                  in: {
+                    $cond: [
+                      { $regexMatch: { input: "$$t", regex: /^#/ } },
+                      { $toLower: "$$t" },
+                      { $toLower: { $concat: ["#", "$$t"] } }
+                    ]
+                  }
+                }
+              },
+              {
+                $map: {
+                  input: { $regexFindAll: { input: "$content", regex: /#\w+/ } },
+                  as: "m",
+                  in: { $toLower: "$$m.match" }
+                }
+              }
+            ]
+          }
+        }
+      },
+      { $unwind: "$tagsList" },
+      { $group: { _id: "$tagsList", count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 5 },
+      { $project: { _id: 0, tag: "$_id", count: 1 } }
+    ]);
+    res.json({ success: true, trending: results });
+  } catch (e) { res.status(500).json({ success: false, message: "Server Error" }); }
+};
+
 exports.editPost = async (req, res) => {
   try {
     const { content } = req.body;

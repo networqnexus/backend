@@ -5,7 +5,7 @@ const employeeSchema = new mongoose.Schema({
   phone:         { type: String },
   department:    { type: String, required: true },
   role:          { type: String, required: true },
-  salary:        { type: Number, required: true },
+  salary:        { type: Number, default: 0 },
   status:        { type: String, enum: ["active","on_leave","inactive"], default: "active" },
   joinDate:      { type: Date, default: Date.now },
   leaveBalance:  { type: Number, default: 20 },
