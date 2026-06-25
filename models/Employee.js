@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const employeeSchema = new mongoose.Schema({
   name:          { type: String, required: true },
-  email:         { type: String, required: true, unique: true },
+  email:         { type: String, required: true },
   phone:         { type: String },
   department:    { type: String, required: true },
   role:          { type: String, required: true },
@@ -11,7 +11,8 @@ const employeeSchema = new mongoose.Schema({
   leaveBalance:  { type: Number, default: 20 },
   avatarUrl:     { type: String },
   manager:       { type: mongoose.Schema.Types.ObjectId, ref: "Employee" },
-  companyId:     { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  companyId:     { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  organization:  { type: mongoose.Schema.Types.ObjectId, ref: "Organization" },
 }, { timestamps: true });
 
 const leaveRequestSchema = new mongoose.Schema({
@@ -22,7 +23,8 @@ const leaveRequestSchema = new mongoose.Schema({
   days:        { type: Number, required: true },
   reason:      { type: String },
   status:      { type: String, enum: ["pending","approved","rejected"], default: "pending" },
-  companyId:   { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  companyId:   { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  organization:{ type: mongoose.Schema.Types.ObjectId, ref: "Organization" },
 }, { timestamps: true });
 
 module.exports = {

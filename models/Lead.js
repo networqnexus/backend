@@ -12,7 +12,8 @@ const leadSchema = new mongoose.Schema({
   notes:         { type: String },
   lastContact:   { type: Date, default: Date.now },
   expectedClose: { type: Date },
-  owner:         { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  owner:         { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  organization:  { type: mongoose.Schema.Types.ObjectId, ref: "Organization" },
   activities:    [{ type: String, text: String, date: { type: Date, default: Date.now } }],
 }, { timestamps: true });
 module.exports = mongoose.model("Lead", leadSchema);

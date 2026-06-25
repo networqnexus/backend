@@ -7,7 +7,7 @@ const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   onboardingCompleted: { type: Boolean, default: false },
-  role: { type: String, enum: ["candidate", "recruiter"], default: "candidate" },
+  role: { type: String, enum: ["employee", "recruiter", "hr", "candidate"], default: "employee" },
   headline: { type: String, default: "" },
   bio: { type: String, default: "" },
   website: { type: String, default: "" },

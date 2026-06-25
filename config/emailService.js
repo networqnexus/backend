@@ -177,9 +177,39 @@ via Networq Nexus`,
   });
 };
 
+// ── Org invite ─────────────────────────────────────────────────────────
+const sendOrgInviteEmail = async (to, { orgName, inviterName, role, acceptUrl }) => {
+  const roleLabel = role === "admin" ? "Admin" : role === "hr" ? "HR Manager" : "Employee";
+  if (!isGmailConfigured() && !isResendConfigured()) {
+    console.log(`\n[DEV EMAIL] Org Invite for ${to}:\n${acceptUrl}\n`);
+    return;
+  }
+  await sendEmail({
+    to,
+    subject: `You're invited to join ${orgName} on Networq Nexus`,
+    text:
+`Hi,
+
+${inviterName} has invited you to join ${orgName} as ${roleLabel} on Networq Nexus.
+
+Click the link below to accept your invitation:
+${acceptUrl}
+
+This invitation expires in 7 days.
+
+If you don't have a Networq Nexus account yet, you'll be prompted to create one first.
+
+If you weren't expecting this invitation, you can safely ignore this email.
+
+Regards,
+Networq Nexus`,
+  });
+};
+
 module.exports = {
   sendVerificationEmail,
   sendPasswordResetEmail,
   sendContactEmail,
   sendInterviewScheduledEmail,
+  sendOrgInviteEmail,
 };
