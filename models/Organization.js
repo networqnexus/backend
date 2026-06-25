@@ -16,6 +16,7 @@ const orgSchema = new mongoose.Schema({
   admins:      [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   followers:   [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   verified:    { type: Boolean, default: false },
+  services:    [{ type: String }],
 }, { timestamps: true });
 
 orgSchema.index({ name: "text", tagline: "text", industry: "text" });
