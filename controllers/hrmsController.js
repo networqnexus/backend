@@ -4,7 +4,7 @@ const mongoose = require("mongoose");
 exports.getEmployees = async (req, res) => {
   try {
     const { dept, search } = req.query;
-    const filter = { companyId: req.user.id };
+    const filter = req.org ? { organization: req.org._id } : { companyId: req.user.id };
     if (dept && dept !== "All Departments") filter.department = dept;
     if (search) filter.$or = [{ name: { $regex: search, $options: "i" } }, { role: { $regex: search, $options: "i" } }];
     const employees = await Employee.find(filter).sort({ createdAt: -1 });
@@ -14,7 +14,8 @@ exports.getEmployees = async (req, res) => {
 
 exports.addEmployee = async (req, res) => {
   try {
-    const employee = await Employee.create({ ...req.body, companyId: req.user.id });
+    const extra = req.org ? { organization: req.org._id } : { companyId: req.user.id };
+    const employee = await Employee.create({ ...req.body, ...extra });
     res.status(201).json({ success: true, employee });
   } catch (e) { res.status(500).json({ success: false, message: "Server Error" }); }
 };
@@ -22,7 +23,7 @@ exports.addEmployee = async (req, res) => {
 exports.updateEmployee = async (req, res) => {
   try {
     const employee = await Employee.findOneAndUpdate(
-      { _id: req.params.id, companyId: req.user.id },
+      req.org ? { _id: req.params.id, organization: req.org._id } : { _id: req.params.id, companyId: req.user.id },
       req.body,
       { new: true }
     );
@@ -32,7 +33,7 @@ exports.updateEmployee = async (req, res) => {
 
 exports.deleteEmployee = async (req, res) => {
   try {
-    await Employee.findOneAndDelete({ _id: req.params.id, companyId: req.user.id });
+    await Employee.findOneAndDelete(req.org ? { _id: req.params.id, organization: req.org._id } : { _id: req.params.id, companyId: req.user.id });
     res.json({ success: true, message: "Deleted" });
   } catch (e) { res.status(500).json({ success: false, message: "Server Error" }); }
 };
@@ -48,7 +49,7 @@ exports.getLeaveRequests = async (req, res) => {
 
 exports.addLeaveRequest = async (req, res) => {
   try {
-    const request = await LeaveRequest.create({ ...req.body, companyId: req.user.id });
+    const request = await LeaveRequest.create({ ...req.body, ...(req.org ? { organization: req.org._id } : { companyId: req.user.id }) });
     await request.populate("employee", "name department role");
     res.status(201).json({ success: true, request });
   } catch (e) { res.status(500).json({ success: false, message: "Server Error" }); }
@@ -58,7 +59,7 @@ exports.updateLeaveStatus = async (req, res) => {
   try {
     const { status } = req.body;
     const request = await LeaveRequest.findOneAndUpdate(
-      { _id: req.params.id, companyId: req.user.id },
+      req.org ? { _id: req.params.id, organization: req.org._id } : { _id: req.params.id, companyId: req.user.id },
       { status },
       { new: true }
     ).populate("employee", "name department role");

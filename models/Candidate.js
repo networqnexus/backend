@@ -12,7 +12,8 @@ const candidateSchema = new mongoose.Schema({
   resumeUrl:   { type: String },
   notes:       { type: String },
   jobId:       { type: mongoose.Schema.Types.ObjectId, ref: "Job" },
-  postedBy:    { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  postedBy:    { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  organization:{ type: mongoose.Schema.Types.ObjectId, ref: "Organization" },
   appliedDate: { type: Date, default: Date.now },
 }, { timestamps: true });
 module.exports = mongoose.model("Candidate", candidateSchema);

@@ -21,7 +21,7 @@ exports.getProfile = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
   try {
-    const allowed=["headline","bio","website","skills","goals","openToWork","location","experience","education","certifications","name","contactNumber","hideOnlineStatus"];
+    const allowed=["headline","bio","website","skills","goals","openToWork","location","experience","education","certifications","name","contactNumber","hideOnlineStatus","role"];
     const updates={};
     allowed.forEach(k=>{if(req.body[k]!==undefined)updates[k]=req.body[k];});
     if(req.files?.avatar?.[0]){const f=req.files.avatar[0];updates.avatarUrl=`data:${f.mimetype};base64,${f.buffer.toString("base64")}`;}
