@@ -78,6 +78,10 @@ exports.updateOrg = async (req, res) => {
     if (!org) return res.status(404).json({ success: false, message: "Organization not found" });
     const allowed = ["tagline","description","industry","website","location","size","foundedYear"];
     allowed.forEach(k => { if (req.body[k] !== undefined) org[k] = req.body[k]; });
+    if (req.body.services !== undefined) {
+      const svc = req.body.services;
+      org.services = Array.isArray(svc) ? svc.filter(Boolean) : typeof svc === "string" ? [svc].filter(Boolean) : [];
+    }
     if (req.body.name && req.body.name.trim() !== org.name) {
       org.name = req.body.name.trim();
       org.slug = await makeSlug(req.body.name, org._id);
