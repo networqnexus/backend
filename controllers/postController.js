@@ -3,6 +3,14 @@ const User = require("../models/User");
 const Notification = require("../models/Notification");
 const populate = (q) => q.populate("author","name username headline avatarUrl").populate("comments.user","name username avatarUrl");
 
+exports.getPost = async (req, res) => {
+  try {
+    const post = await populate(Post.findById(req.params.id));
+    if (!post) return res.status(404).json({ success: false, message: "Post not found" });
+    res.json({ success: true, post });
+  } catch(e) { res.status(500).json({ success: false, message: "Server Error" }); }
+};
+
 exports.getPosts = async (req, res) => {
   try {
     const page=parseInt(req.query.page)||1, limit=parseInt(req.query.limit)||10;
