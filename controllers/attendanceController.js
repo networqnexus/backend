@@ -1,7 +1,7 @@
 const Attendance  = require("../models/Attendance");
 const { Employee } = require("../models/Employee");
 
-// GET /:orgId/attendance?date=YYYY-MM-DD
+// GET /:orgId/attendance?date=YYYY-MM-DD   dhb
 exports.getAttendance = async (req, res) => {
   try {
     const date  = req.query.date || new Date().toISOString().slice(0, 10);
