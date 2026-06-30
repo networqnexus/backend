@@ -7,6 +7,7 @@ router.get("/trending",       auth, c.getTrendingHashtags);
 router.get("/",               auth, c.getPosts);
 router.get("/my",             auth, c.getMyPosts);
 router.get("/saved",          auth, c.getSavedPosts);
+router.get("/:id",            auth, c.getPost);
 router.post("/",              auth, upload.single("media"), c.createPost);
 router.put("/:id/like",      auth, c.likePost);
 router.put("/:id/save",      auth, c.toggleSave);
