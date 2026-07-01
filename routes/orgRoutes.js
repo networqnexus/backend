@@ -21,6 +21,7 @@ router.get("/:slug",       auth, c.getOrg);
 router.put("/:id",         auth, upload.fields([{name:"logo",maxCount:1},{name:"cover",maxCount:1}]), c.updateOrg);
 router.delete("/:id",      auth, c.deleteOrg);
 router.put("/:id/follow",  auth, c.followOrg);
+router.delete("/:id/leave", auth, c.leaveOrg);
 router.post("/:id/admins",             auth, c.addAdmin);
 router.delete("/:id/admins/:userId",   auth, c.removeAdmin);
 
@@ -31,6 +32,12 @@ router.put("/:orgId/ats/candidates/:id/stage",    auth, orgMW, ats.updateStage);
 router.put("/:orgId/ats/candidates/:id/rating",   auth, orgMW, ats.updateRating);
 router.put("/:orgId/ats/candidates/:id/notes",    auth, orgMW, ats.updateNotes);
 router.delete("/:orgId/ats/candidates/:id",       auth, orgMW, ats.deleteCandidate);
+router.get("/:orgId/ats/report",                  auth, orgMW, ats.getReport);
+router.get("/:orgId/ats/report/hiring-assistant",  auth, orgMW, ats.getHiringAssistant);
+router.get("/:orgId/ats/jobs",                     auth, orgMW, ats.getOrgJobs);
+router.post("/:orgId/ats/jobs",                    auth, orgMW, ats.createOrgJob);
+router.put("/:orgId/ats/jobs/:id/toggle",          auth, orgMW, ats.toggleOrgJob);
+router.delete("/:orgId/ats/jobs/:id",              auth, orgMW, ats.deleteOrgJob);
 
 // ── Org Workspace — CRM ───────────────────────────────────────────────
 router.get("/:orgId/crm/leads",         auth, orgMW, crm.getLeads);
