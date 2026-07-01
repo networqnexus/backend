@@ -148,6 +148,21 @@ exports.removeAdmin = async (req, res) => {
   } catch (e) { res.status(500).json({ success: false, message: "Server Error" }); }
 };
 
+exports.leaveOrg = async (req, res) => {
+  try {
+    const org = await Organization.findById(req.params.id);
+    if (!org) return res.status(404).json({ success: false, message: "Organization not found" });
+    if (org.owner.toString() === req.user.id) return res.status(400).json({ success: false, message: "Owners cannot leave their own organization." });
+    org.admins = org.admins.filter(a => a.toString() !== req.user.id);
+    await org.save();
+    await OrgInvite.updateMany(
+      { org: org._id, status: "accepted", acceptedBy: req.user.id },
+      { status: "cancelled" }
+    );
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ success: false, message: "Server Error" }); }
+};
+
 exports.searchOrgs = async (req, res) => {
   try {
     const { q } = req.query;
