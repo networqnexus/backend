@@ -19,8 +19,6 @@ const makeSlug = async (name, excludeId = null) => {
 
 exports.createOrg = async (req, res) => {
   try {
-    const existing = await Organization.findOne({ owner: req.user.id });
-    if (existing) return res.status(400).json({ success: false, message: "You already own an organization.", slug: existing.slug });
     const { name, tagline, description, industry, website, location, size, foundedYear } = req.body;
     if (!name?.trim()) return res.status(400).json({ success: false, message: "Organization name is required." });
     const slug = await makeSlug(name);
@@ -37,7 +35,7 @@ exports.getMyOrg = async (req, res) => {
     const { Employee } = require("../models/Employee");
     const currentUser = await User.findById(req.user.id).select("email");
     const [owned, adminOf, empRecord] = await Promise.all([
-      Organization.findOne({ owner: req.user.id }).populate("admins", "name username avatarUrl headline"),
+      Organization.find({ owner: req.user.id }).populate("admins", "name username avatarUrl headline"),
       Organization.find({ admins: req.user.id }).populate("owner", "name username avatarUrl"),
       Employee.findOne({ email: currentUser.email, organization: { $ne: null } })
         .populate("organization", "name slug logoUrl"),
@@ -53,21 +51,32 @@ exports.getOrg = async (req, res) => {
       .populate("owner", "name username avatarUrl headline")
       .populate("admins", "name username avatarUrl headline");
     if (!org) return res.status(404).json({ success: false, message: "Organization not found" });
-    const [jobs, acceptedInvites] = await Promise.all([
+
+    const { Employee } = require("../models/Employee");
+    const [jobs, acceptedInvites, currentUser] = await Promise.all([
       Job.find({ postedBy: org.owner._id, active: true }).sort({ createdAt: -1 }).limit(6),
       OrgInvite.find({ org: org._id, status: "accepted" })
         .populate("acceptedBy", "name username avatarUrl headline")
         .sort({ updatedAt: -1 }),
+      User.findById(req.user.id).select("email"),
     ]);
+
     const isFollowing = org.followers.some(f => f.toString() === req.user.id);
-    const isOwner = org.owner._id.toString() === req.user.id;
-    const isAdmin = org.admins.some(a => a._id.toString() === req.user.id);
-    // members = accepted invites, excluding those already shown as admins
+    const isOwner     = org.owner._id.toString() === req.user.id;
+    const isAdmin     = org.admins.some(a => a._id.toString() === req.user.id);
+
     const adminIds = new Set(org.admins.map(a => a._id.toString()));
-    const members = acceptedInvites
+    const members  = acceptedInvites
       .filter(i => i.acceptedBy && !adminIds.has(i.acceptedBy._id.toString()))
       .map(i => ({ ...i.acceptedBy.toObject(), inviteRole: i.role }));
-    const isMember = members.some(m => m._id.toString() === req.user.id);
+
+    // Check via invite records AND Employee model (covers manually added employees)
+    const isMemberByInvite   = members.some(m => m._id.toString() === req.user.id);
+    const isMemberByEmployee = !isOwner && !isAdmin && currentUser?.email
+      ? !!(await Employee.exists({ organization: org._id, email: currentUser.email }))
+      : false;
+    const isMember = isMemberByInvite || isMemberByEmployee;
+
     res.json({ success: true, org, jobs, isFollowing, isOwner, isAdmin, isMember, members });
   } catch (e) { res.status(500).json({ success: false, message: "Server Error" }); }
 };
