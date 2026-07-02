@@ -159,15 +159,32 @@ exports.removeAdmin = async (req, res) => {
 
 exports.leaveOrg = async (req, res) => {
   try {
+    const { Employee } = require("../models/Employee");
     const org = await Organization.findById(req.params.id);
     if (!org) return res.status(404).json({ success: false, message: "Organization not found" });
     if (org.owner.toString() === req.user.id) return res.status(400).json({ success: false, message: "Owners cannot leave their own organization." });
+
+    const user = await User.findById(req.user.id).select("email role");
+
+    // Remove from admins
     org.admins = org.admins.filter(a => a.toString() !== req.user.id);
     await org.save();
+
+    // Cancel invite records
     await OrgInvite.updateMany(
-      { org: org._id, status: "accepted", acceptedBy: req.user.id },
+      { org: org._id, acceptedBy: req.user.id },
       { status: "cancelled" }
     );
+
+    // Delete Employee record (this is what getMyOrg uses to check membership)
+    await Employee.findOneAndDelete({ organization: org._id, email: user.email });
+
+    // Reset role to employee if they were HR and have no other admin org
+    if (user.role === "hr") {
+      const otherAdminOrg = await Organization.findOne({ admins: req.user.id });
+      if (!otherAdminOrg) await User.findByIdAndUpdate(req.user.id, { role: "employee" });
+    }
+
     res.json({ success: true });
   } catch (e) { res.status(500).json({ success: false, message: "Server Error" }); }
 };
