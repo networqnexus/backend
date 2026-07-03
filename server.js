@@ -47,10 +47,12 @@ const orgRoutes          = require("./routes/orgRoutes");
 
 
 const User = require("./models/User");
+const Conversation = require("./models/Conversation");
 const app = express(), server = http.createServer(app);
 const io = new Server(server, { cors: { origin: process.env.CLIENT_URL || "http://localhost:5173", methods: ["GET","POST"] } });
 const onlineUsers = new Map();
 const hiddenUsers = new Set();
+const activeCalls = new Map(); // callId -> { participants: Set<userId>, conversationParticipants: string[] }
 
 const broadcastOnlineUsers = () => {
   const visible = Array.from(onlineUsers.keys()).filter(id => !hiddenUsers.has(id));
@@ -64,6 +66,10 @@ io.on("connection", (socket) => {
       const u = await User.findById(userId).select("hideOnlineStatus");
       if (u?.hideOnlineStatus) hiddenUsers.add(userId);
       else hiddenUsers.delete(userId);
+    } catch {}
+    try {
+      const groups = await Conversation.find({ participants: userId }).select("_id");
+      groups.forEach(g => socket.join(`group:${g._id}`));
     } catch {}
     broadcastOnlineUsers();
   });
@@ -82,12 +88,77 @@ io.on("connection", (socket) => {
   socket.on("typing", (data) => { const r = onlineUsers.get(data.receiverId); if (r) io.to(r).emit("typing", data); });
   socket.on("stop_typing", (data) => { const r = onlineUsers.get(data.receiverId); if (r) io.to(r).emit("stop_typing", data); });
 
+  // Group messaging — participants share a room instead of a single receiver socket
+  socket.on("join_group", (conversationId) => { socket.join(`group:${conversationId}`); });
+  socket.on("send_group_message", (data) => { socket.to(`group:${data.conversation}`).emit("receive_group_message", data); });
+  socket.on("group_typing", (data) => { socket.to(`group:${data.conversationId}`).emit("group_typing", data); });
+  socket.on("group_stop_typing", (data) => { socket.to(`group:${data.conversationId}`).emit("group_stop_typing", data); });
+
+  // --- Voice/video calling (WebRTC signaling relay; call membership tracked in-memory only) ---
+  socket.on("call_invite", (data) => {
+    // data: { callId, conversationId, isGroup, isVideo, participantIds, from:{id,name,avatarUrl} }
+    activeCalls.set(data.callId, { participants: new Set([data.from.id]), conversationParticipants: data.participantIds });
+    data.participantIds.forEach(uid => {
+      if (uid === data.from.id) return;
+      const sid = onlineUsers.get(uid);
+      if (sid) io.to(sid).emit("incoming_call", data);
+    });
+  });
+
+  socket.on("call_join", (data) => {
+    // data: { callId, userId, name, avatarUrl }
+    const call = activeCalls.get(data.callId);
+    if (!call) return;
+    const roster = Array.from(call.participants).filter(id => id !== data.userId);
+    const joinerSid = onlineUsers.get(data.userId);
+    if (joinerSid) io.to(joinerSid).emit("call_roster", { callId: data.callId, roster });
+    call.participants.add(data.userId);
+    call.conversationParticipants.forEach(uid => {
+      if (uid === data.userId) return;
+      const sid = onlineUsers.get(uid);
+      if (sid) io.to(sid).emit("call_participant_joined", { callId: data.callId, userId: data.userId, name: data.name, avatarUrl: data.avatarUrl });
+    });
+  });
+
+  socket.on("call_reject", (data) => {
+    // data: { callId, to, from }
+    const sid = onlineUsers.get(data.to);
+    if (sid) io.to(sid).emit("call_rejected", data);
+  });
+
+  socket.on("call_leave", (data) => {
+    // data: { callId, userId }
+    const call = activeCalls.get(data.callId);
+    if (call) {
+      call.participants.delete(data.userId);
+      call.conversationParticipants.forEach(uid => {
+        if (uid === data.userId) return;
+        const sid = onlineUsers.get(uid);
+        if (sid) io.to(sid).emit("call_participant_left", { callId: data.callId, userId: data.userId });
+      });
+      if (call.participants.size === 0) activeCalls.delete(data.callId);
+    }
+  });
+
+  socket.on("webrtc_offer", (data) => { const sid = onlineUsers.get(data.to); if (sid) io.to(sid).emit("webrtc_offer", data); });
+  socket.on("webrtc_answer", (data) => { const sid = onlineUsers.get(data.to); if (sid) io.to(sid).emit("webrtc_answer", data); });
+  socket.on("webrtc_ice_candidate", (data) => { const sid = onlineUsers.get(data.to); if (sid) io.to(sid).emit("webrtc_ice_candidate", data); });
+
   socket.on("disconnect", async () => {
     let disconnectedId = null;
     onlineUsers.forEach((sid, uid) => { if (sid === socket.id) disconnectedId = uid; });
     if (disconnectedId) {
       onlineUsers.delete(disconnectedId);
       hiddenUsers.delete(disconnectedId);
+      activeCalls.forEach((call, callId) => {
+        if (!call.participants.has(disconnectedId)) return;
+        call.participants.delete(disconnectedId);
+        call.conversationParticipants.forEach(uid => {
+          const sid = onlineUsers.get(uid);
+          if (sid) io.to(sid).emit("call_participant_left", { callId, userId: disconnectedId });
+        });
+        if (call.participants.size === 0) activeCalls.delete(callId);
+      });
       try { await User.findByIdAndUpdate(disconnectedId, { lastSeen: new Date() }); } catch {}
     }
     broadcastOnlineUsers();

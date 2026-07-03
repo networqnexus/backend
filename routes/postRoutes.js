@@ -13,6 +13,7 @@ router.put("/:id/like",      auth, c.likePost);
 router.put("/:id/save",      auth, c.toggleSave);
 router.put("/:id/edit",      auth, c.editPost);
 router.post("/:id/comment",  auth, c.commentPost);
+router.post("/:id/report",   auth, c.reportPost);
 router.delete("/:id",        auth, c.deletePost);
 
 module.exports = router;

@@ -1,6 +1,8 @@
 const Post = require("../models/Post");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
+const Report = require("../models/Report");
+const { notifAllowed } = require("../utils/notificationPrefs");
 const populate = (q) => q.populate("author","name username headline avatarUrl").populate("comments.user","name username avatarUrl");
 
 exports.getPost = async (req, res) => {
@@ -48,7 +50,7 @@ exports.likePost = async (req, res) => {
       }
     } else {
       post.reactions.push({ user: req.user.id, type });
-      if (post.author._id.toString() !== req.user.id) {
+      if (post.author._id.toString() !== req.user.id && await notifAllowed(post.author._id, "postLikes")) {
         const notif = await Notification.create({ recipient:post.author._id, sender:req.user.id, type:"like", message:"reacted to your post", link:"/feed" });
         await notif.populate("sender","name username avatarUrl");
         const sid = req.onlineUsers?.get(post.author._id.toString());
@@ -94,7 +96,7 @@ exports.commentPost = async (req, res) => {
     post.comments.push({user:req.user.id,text});
     await post.save();
     await post.populate("comments.user","name username avatarUrl");
-    if(post.author._id.toString()!==req.user.id){
+    if(post.author._id.toString()!==req.user.id && await notifAllowed(post.author._id,"comments")){
       const notif = await Notification.create({recipient:post.author._id,sender:req.user.id,type:"comment",message:"commented on your post",link:"/feed"});
       await notif.populate("sender","name username avatarUrl");
       const sid = req.onlineUsers?.get(post.author._id.toString());
@@ -161,6 +163,20 @@ exports.getTrendingHashtags = async (req, res) => {
       { $project: { _id: 0, tag: "$_id", count: 1 } }
     ]);
     res.json({ success: true, trending: results });
+  } catch (e) { res.status(500).json({ success: false, message: "Server Error" }); }
+};
+
+exports.reportPost = async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ success: false, message: "Post not found" });
+    if (post.author.toString() === req.user.id) return res.status(400).json({ success: false, message: "You cannot report your own post" });
+    try {
+      await Report.create({ post: post._id, reporter: req.user.id, reason: req.body?.reason || "" });
+    } catch (e) {
+      if (e.code !== 11000) throw e; // already reported by this user — treat as success
+    }
+    res.json({ success: true, message: "Post reported" });
   } catch (e) { res.status(500).json({ success: false, message: "Server Error" }); }
 };
 
