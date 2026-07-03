@@ -43,6 +43,7 @@ const storyRoutes        = require("./routes/storyRoutes");
 const paymentRoutes      = require("./routes/paymentRoutes");
 const projectRoutes      = require("./routes/projectRoutes");
 const orgRoutes          = require("./routes/orgRoutes");
+const callRoutes         = require("./routes/callRoutes");
 
 
 
@@ -215,6 +216,7 @@ app.use("/api/stories",  storyRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/projects",      projectRoutes);
 app.use("/api/organizations", orgRoutes);
+app.use("/api/calls",        callRoutes);
 
 app.get("/", (req, res) => res.json({ success: true, message: "Networq Nexus API 🚀" }));
 app.use((req, res) => res.status(404).json({ success: false, message: `Route ${req.originalUrl} not found` }));
