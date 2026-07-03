@@ -1,5 +1,6 @@
 const Job=require("../models/Job"),Notification=require("../models/Notification"),User=require("../models/User");
 const { sendInterviewScheduledEmail } = require("../config/emailService");
+const { notifAllowed } = require("../utils/notificationPrefs");
 
 exports.getJobs=async(req,res)=>{
   try{
@@ -72,7 +73,7 @@ exports.applyJob=async(req,res)=>{
     if(req.file)application.resumeUrl=`data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
     job.applicants.push(application);
     await job.save();
-    if(job.postedBy&&job.postedBy._id.toString()!==req.user.id)
+    if(job.postedBy&&job.postedBy._id.toString()!==req.user.id&&await notifAllowed(job.postedBy._id,"jobAlerts"))
       await Notification.create({recipient:job.postedBy._id,sender:req.user.id,type:"job",message:`applied to your job: ${job.title}`,link:"/jobs"});
     res.json({success:true,message:"Applied successfully",status:"pending"});
   }catch(e){res.status(500).json({success:false,message:"Server Error"});}
@@ -111,7 +112,7 @@ exports.updateApplicationStatus=async(req,res)=>{
       reviewed:`Your application for "${job.title}" at ${job.company} has been reviewed.`,
       rejected:`Your application for "${job.title}" at ${job.company} was not selected at this time. Thank you for applying.`,
     };
-    if(notifMessages[status])
+    if(notifMessages[status]&&await notifAllowed(app.user,"jobAlerts"))
       await Notification.create({recipient:app.user,sender:req.user.id,type:"job",message:notifMessages[status],link:"/jobs"});
     res.json({success:true,status});
   }catch(e){res.status(500).json({success:false,message:"Server Error"});}

@@ -1,7 +1,15 @@
 const express=require("express"),router=express.Router();
 const auth=require("../middleware/authMiddleware");
+const {chatUpload}=require("../config/upload");
 const c=require("../controllers/messageController");
 router.get("/conversations",auth,c.getConversations);
+router.post("/groups",auth,c.createGroup);
+router.get("/groups",auth,c.getGroupConversations);
+router.get("/groups/:conversationId",auth,c.getGroupMessages);
+router.post("/groups/:conversationId",auth,chatUpload.single("media"),c.sendGroupMessage);
+router.delete("/groups/:conversationId/clear",auth,c.clearGroupMessages);
+router.post("/groups/:conversationId/leave",auth,c.leaveGroup);
 router.get("/:userId",auth,c.getMessages);
-router.post("/:userId",auth,c.sendMessage);
+router.post("/:userId",auth,chatUpload.single("media"),c.sendMessage);
+router.delete("/:userId/clear",auth,c.clearMessages);
 module.exports=router;
