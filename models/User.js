@@ -38,6 +38,13 @@ const userSchema = new mongoose.Schema({
   }],
   lastSeen:          { type: Date },
   hideOnlineStatus:  { type: Boolean, default: false },
+  notificationPreferences: {
+    connectionRequests: { type: Boolean, default: true },
+    postLikes:          { type: Boolean, default: true },
+    comments:           { type: Boolean, default: true },
+    messages:           { type: Boolean, default: true },
+    jobAlerts:          { type: Boolean, default: true },
+  },
 }, { timestamps: true });
 userSchema.index({ name: "text", username: "text", headline: "text" });
 module.exports = mongoose.model("User", userSchema);
