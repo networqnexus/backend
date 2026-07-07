@@ -50,7 +50,7 @@ const callRoutes         = require("./routes/callRoutes");
 const User = require("./models/User");
 const Conversation = require("./models/Conversation");
 const app = express(), server = http.createServer(app);
-const io = new Server(server, { cors: { origin: process.env.CLIENT_URL || "http://localhost:5173", methods: ["GET","POST"] } });
+const io = new Server(server, { cors: { origin: process.env.FRONTEND_URL || "http://localhost:5173", methods: ["GET","POST"] } });
 const onlineUsers = new Map();
 const hiddenUsers = new Set();
 const activeCalls = new Map(); // callId -> { participants: Set<userId>, conversationParticipants: string[] }
@@ -184,7 +184,7 @@ app.use((req, res, next) => { req.io = io; req.onlineUsers = onlineUsers; next()
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(compression());
 app.use(morgan("dev"));
-app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173", credentials: true }));
+app.use(cors({ origin: process.env.FRONTEND_URL || "http://localhost:5173", credentials: true }));
 
 // Stripe webhook must receive raw body — register BEFORE express.json()
 const { webhook } = require("./controllers/paymentController");
