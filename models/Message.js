@@ -8,6 +8,13 @@ const messageSchema = new mongoose.Schema({
     data: String, mimeType: String, filename: String, size: Number,
     type: { type: String, enum: ["image", "video", "document"] },
   },
+  // Present only on system messages logging a finished voice/video call — created server-side, never by a user directly.
+  callInfo: {
+    isVideo: Boolean,
+    status: { type: String, enum: ["answered", "missed", "declined"] },
+    duration: { type: Number, default: 0 }, // seconds, only meaningful when status === "answered"
+    caller: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  },
   read: { type: Boolean, default: false },
   readBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }], // group messages only
 }, { timestamps: true });
