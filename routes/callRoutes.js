@@ -1,6 +1,32 @@
 const express = require("express");
 const router  = express.Router();
 const auth    = require("../middleware/authMiddleware");
+const Message = require("../models/Message");
+const Conversation = require("../models/Conversation");
+
+// All logged calls (1:1 + group) involving the current user, newest first — powers the Calls tab.
+router.get("/history", auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const groups = await Conversation.find({ participants: userId }).select("_id");
+    const calls = await Message.find({
+      callInfo: { $exists: true },
+      $or: [
+        { sender: userId },
+        { receiver: userId },
+        { conversation: { $in: groups.map(g => g._id) } },
+      ],
+    })
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .populate("sender", "name username avatarUrl")
+      .populate("receiver", "name username avatarUrl")
+      .populate("conversation", "name avatarUrl");
+    res.json({ success: true, calls });
+  } catch (e) {
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+});
 
 // Returns ICE server config (STUN + TURN) for WebRTC calls.
 // Supports Metered.ca free API (50GB/month) via env vars:
